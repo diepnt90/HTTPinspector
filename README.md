@@ -11,7 +11,7 @@ Raspberry Pi mitmproxy capture agent for the Tool Station **HTTP Inspector** UI.
 - **No response body**
 - Request bodies larger than the configured limit are skipped
 
-The Pi remains the actual HTTP/HTTPS proxy. Captured records are posted to the AllinOne Cloudflare Worker and shown at `/http-inspector`.
+The Raspberry Pi is the actual HTTP/HTTPS proxy. Capture events are forwarded to the AllinOne Cloudflare Worker and broadcast to open HTTP Inspector pages in realtime. Inspector traffic is **not stored in Cloudflare KV**. If no dashboard is open, events are simply discarded by the realtime relay.
 
 ## First install on Raspberry Pi
 
@@ -27,14 +27,14 @@ Edit the generated configuration:
 nano config.env
 ```
 
-Set the deployed Tool Station base URL, for example:
+Set the deployed Tool Station base URL:
 
 ```bash
-INSPECTOR_ENDPOINT=https://tools.example.com
+INSPECTOR_ENDPOINT=https://your-allinone-domain.example
 BODY_LIMIT=262144
 POST_TIMEOUT=5
 LISTEN_HOST=0.0.0.0
-LISTEN_PORT=8080
+LISTEN_PORT=8445
 ```
 
 Then start the service:
@@ -44,7 +44,7 @@ sudo systemctl restart httpinspector
 sudo systemctl status httpinspector
 ```
 
-Live logs:
+Live service logs:
 
 ```bash
 journalctl -u httpinspector -f
@@ -52,18 +52,20 @@ journalctl -u httpinspector -f
 
 ## iPhone proxy setup
 
-Find the Raspberry Pi LAN address:
+The proxy listens on TCP port `8445`.
 
-```bash
-hostname -I
+If the iPhone is on the same LAN, use the Raspberry Pi LAN IP. If your router forwards TCP `8445` to the Pi and your network supports the route you want to use, you can use your DDNS hostname such as:
+
+```text
+daulac.duckdns.org
 ```
 
 On iPhone:
 
 1. Settings → Wi-Fi → current network
 2. Configure Proxy → Manual
-3. Server: Raspberry Pi LAN IP
-4. Port: `8080`
+3. Server: Raspberry Pi LAN IP or `daulac.duckdns.org`
+4. Port: `8445`
 5. Authentication: Off
 
 With the proxy enabled, open on the iPhone:
@@ -80,17 +82,17 @@ Settings → General → About → Certificate Trust Settings
 
 Apps using certificate pinning may reject interception even after the mitmproxy CA is trusted.
 
-## Dashboard controls
+## Realtime dashboard
 
 Open Tool Station → **HTTP Inspector**.
 
-- **Record**: Worker starts storing incoming capture records
-- **Pause**: traffic still passes through the Pi, but new records are not stored
-- **Erase**: deletes HTTP Inspector records from Cloudflare KV
+- **Record**: start adding incoming live events to this browser tab
+- **Pause**: keep the live connection open but stop adding events to the list
+- **Erase**: clear the current browser session immediately
 - Search: searches host, URL, request/response headers, request body and errors
 - Filters: HTTP method, response status class and body state
 
-The recording state defaults to paused until Record is enabled in the UI.
+The dashboard keeps up to 2,000 captured requests in browser memory for the current page session. Reloading or closing the page clears them. No HTTP Inspector request history is written to KV.
 
 ## Updating later
 
@@ -100,4 +102,4 @@ git pull
 sudo systemctl restart httpinspector
 ```
 
-No reinstall is normally required unless dependencies or the service definition change.
+No reinstall is normally required unless dependencies or the systemd service definition change.
