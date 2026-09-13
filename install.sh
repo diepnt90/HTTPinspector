@@ -15,14 +15,12 @@ python3 -m venv .venv
 
 if [[ ! -f config.env ]]; then
   cp config.env.example config.env
-  echo
-  echo "Created $ROOT/config.env"
-  echo "Edit INSPECTOR_ENDPOINT before starting the service."
+  echo "Created $ROOT/config.env with the default Inspector endpoint and port."
 fi
 
 sudo tee "/etc/systemd/system/${SERVICE_NAME}.service" >/dev/null <<EOF
 [Unit]
-Description=HTTP Inspector mitmproxy for iPhone traffic
+Description=HTTP Inspector mitmproxy service
 After=network-online.target
 Wants=network-online.target
 
@@ -41,10 +39,11 @@ EOF
 
 sudo systemctl daemon-reload
 sudo systemctl enable "$SERVICE_NAME"
+sudo systemctl restart "$SERVICE_NAME"
 
 echo
 echo "Installation complete."
-echo "1. Edit: $ROOT/config.env"
-echo "2. Start: sudo systemctl restart $SERVICE_NAME"
-echo "3. Status: sudo systemctl status $SERVICE_NAME"
-echo "4. Logs: journalctl -u $SERVICE_NAME -f"
+echo "Inspector UI: https://daulac.nomzom.lol/http-inspector/"
+echo "Proxy listener: 0.0.0.0:8445"
+echo "Status: sudo systemctl status $SERVICE_NAME"
+echo "Logs: journalctl -u $SERVICE_NAME -f"
