@@ -13,7 +13,7 @@ set +a
 
 : "${INSPECTOR_ENDPOINT:?INSPECTOR_ENDPOINT is required}"
 LISTEN_HOST="${LISTEN_HOST:-0.0.0.0}"
-LISTEN_PORT="${LISTEN_PORT:-8080}"
+LISTEN_PORT="${LISTEN_PORT:-8445}"
 
 exec ./.venv/bin/mitmdump \
   --listen-host "$LISTEN_HOST" \
