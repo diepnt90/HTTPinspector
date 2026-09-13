@@ -57,10 +57,14 @@ def submit(payload):
     threading.Thread(target=post_event, args=(payload,), daemon=True).start()
 
 
+def request_started(flow: http.HTTPFlow):
+    return getattr(flow.request, "timestamp_start", None) or time.time()
+
+
 def build_base(flow: http.HTTPFlow):
     req = flow.request
     body, encoding, body_size, skipped = encode_body(req.raw_content)
-    started = getattr(flow, "timestamp_start", None) or time.time()
+    started = request_started(flow)
     return {
         "timestamp": int(started * 1000),
         "method": req.method,
@@ -82,7 +86,7 @@ def response(flow: http.HTTPFlow):
         {
             "status": flow.response.status_code,
             "response_headers": headers_to_dict(flow.response.headers),
-            "duration_ms": round(max(0, (time.time() - (flow.timestamp_start or time.time())) * 1000), 2),
+            "duration_ms": round(max(0, (time.time() - request_started(flow)) * 1000), 2),
             "error": "",
         }
     )
@@ -95,7 +99,7 @@ def error(flow: http.HTTPFlow):
         {
             "status": None,
             "response_headers": {},
-            "duration_ms": round(max(0, (time.time() - (flow.timestamp_start or time.time())) * 1000), 2),
+            "duration_ms": round(max(0, (time.time() - request_started(flow)) * 1000), 2),
             "error": str(flow.error or "Network error"),
         }
     )
