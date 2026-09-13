@@ -7,7 +7,8 @@ import urllib.request
 from mitmproxy import http
 
 ENDPOINT = os.environ.get("INSPECTOR_ENDPOINT", "").rstrip("/")
-BODY_LIMIT = int(os.environ.get("BODY_LIMIT", str(256 * 1024)))
+REQUEST_BODY_LIMIT = int(os.environ.get("BODY_LIMIT", str(256 * 1024)))
+RESPONSE_BODY_LIMIT = int(os.environ.get("RESPONSE_BODY_LIMIT", str(256 * 1024)))
 POST_TIMEOUT = float(os.environ.get("POST_TIMEOUT", "5"))
 
 
@@ -21,11 +22,11 @@ def headers_to_dict(headers):
     return out
 
 
-def encode_body(raw):
+def encode_body(raw, limit):
     if raw is None:
         return "", "utf8", 0, False
     size = len(raw)
-    if size > BODY_LIMIT:
+    if size > limit:
         return "", "utf8", size, True
     if not raw:
         return "", "utf8", 0, False
@@ -63,7 +64,7 @@ def request_started(flow: http.HTTPFlow):
 
 def build_base(flow: http.HTTPFlow):
     req = flow.request
-    body, encoding, body_size, skipped = encode_body(req.raw_content)
+    body, encoding, body_size, skipped = encode_body(req.raw_content, REQUEST_BODY_LIMIT)
     started = request_started(flow)
     return {
         "timestamp": int(started * 1000),
@@ -82,10 +83,17 @@ def build_base(flow: http.HTTPFlow):
 
 def response(flow: http.HTTPFlow):
     payload = build_base(flow)
+    response_body, response_encoding, response_size, response_skipped = encode_body(
+        flow.response.raw_content, RESPONSE_BODY_LIMIT
+    )
     payload.update(
         {
             "status": flow.response.status_code,
             "response_headers": headers_to_dict(flow.response.headers),
+            "response_body": response_body,
+            "response_body_encoding": response_encoding,
+            "response_body_size": response_size,
+            "response_body_skipped": response_skipped,
             "duration_ms": round(max(0, (time.time() - request_started(flow)) * 1000), 2),
             "error": "",
         }
@@ -99,6 +107,10 @@ def error(flow: http.HTTPFlow):
         {
             "status": None,
             "response_headers": {},
+            "response_body": "",
+            "response_body_encoding": "utf8",
+            "response_body_size": 0,
+            "response_body_skipped": False,
             "duration_ms": round(max(0, (time.time() - request_started(flow)) * 1000), 2),
             "error": str(flow.error or "Network error"),
         }
