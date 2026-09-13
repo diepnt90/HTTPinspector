@@ -8,6 +8,7 @@ services:
     environment:
       INSPECTOR_ENDPOINT: https://daulac.nomzom.lol
       BODY_LIMIT: "262144"
+      RESPONSE_BODY_LIMIT: "262144"
       POST_TIMEOUT: "5"
       LISTEN_HOST: 0.0.0.0
       LISTEN_PORT: "8445"
