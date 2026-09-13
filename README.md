@@ -1,6 +1,6 @@
 # HTTPinspector
 
-Raspberry Pi mitmproxy capture agent for the Tool Station **HTTP Inspector** UI.
+mitmproxy capture agent for the Tool Station **HTTP Inspector** UI.
 
 ## What it captures
 
@@ -11,9 +11,15 @@ Raspberry Pi mitmproxy capture agent for the Tool Station **HTTP Inspector** UI.
 - **No response body**
 - Request bodies larger than the configured limit are skipped
 
-The Raspberry Pi is the actual HTTP/HTTPS proxy. Capture events are forwarded to the AllinOne Cloudflare Worker and broadcast to open HTTP Inspector pages in realtime. Inspector traffic is **not stored in Cloudflare KV**. If no dashboard is open, events are simply discarded by the realtime relay.
+Capture events are forwarded to the AllinOne Cloudflare Worker and broadcast to open HTTP Inspector pages in realtime. Inspector traffic is **not stored in Cloudflare KV**. If no dashboard is open, events are discarded by the realtime relay.
 
-## First install on Raspberry Pi
+HTTP Inspector UI:
+
+```text
+https://daulac.nomzom.lol/http-inspector/
+```
+
+## First install
 
 ```bash
 git clone https://github.com/diepnt90/HTTPinspector.git
@@ -21,26 +27,21 @@ cd HTTPinspector
 bash install.sh
 ```
 
-Edit the generated configuration:
+The installer creates `config.env`, installs mitmproxy, enables the `httpinspector` systemd service, and starts it automatically.
+
+Default configuration:
 
 ```bash
-nano config.env
-```
-
-Set the deployed Tool Station base URL:
-
-```bash
-INSPECTOR_ENDPOINT=https://your-allinone-domain.example
+INSPECTOR_ENDPOINT=https://daulac.nomzom.lol
 BODY_LIMIT=262144
 POST_TIMEOUT=5
 LISTEN_HOST=0.0.0.0
 LISTEN_PORT=8445
 ```
 
-Then start the service:
+Check status:
 
 ```bash
-sudo systemctl restart httpinspector
 sudo systemctl status httpinspector
 ```
 
@@ -50,43 +51,29 @@ Live service logs:
 journalctl -u httpinspector -f
 ```
 
-## iPhone proxy setup
+## Proxy client example
 
 The proxy listens on TCP port `8445`.
 
-If the iPhone is on the same LAN, use the Raspberry Pi LAN IP. If your router forwards TCP `8445` to the Pi and your network supports the route you want to use, you can use your DDNS hostname such as:
+For a client on the same LAN, use the machine's LAN IP and port `8445`. If TCP `8445` is forwarded to the machine through a router, a configured hostname can also be used.
 
-```text
-daulac.duckdns.org
-```
-
-On iPhone:
-
-1. Settings → Wi-Fi → current network
-2. Configure Proxy → Manual
-3. Server: Raspberry Pi LAN IP or `daulac.duckdns.org`
-4. Port: `8445`
-5. Authentication: Off
-
-With the proxy enabled, open on the iPhone:
+For HTTPS inspection, the client must trust the mitmproxy CA. Open:
 
 ```text
 http://mitm.it
 ```
 
-Install the mitmproxy iOS certificate, then enable full trust under:
-
-```text
-Settings → General → About → Certificate Trust Settings
-```
-
-Apps using certificate pinning may reject interception even after the mitmproxy CA is trusted.
+and install the certificate appropriate for the client platform. Applications using certificate pinning may reject interception even after the mitmproxy CA is trusted.
 
 ## Realtime dashboard
 
-Open Tool Station → **HTTP Inspector**.
+Open:
 
-- **Record**: start adding incoming live events to this browser tab
+```text
+https://daulac.nomzom.lol/http-inspector/
+```
+
+- **Record**: start adding incoming live events to the current browser tab
 - **Pause**: keep the live connection open but stop adding events to the list
 - **Erase**: clear the current browser session immediately
 - Search: searches host, URL, request/response headers, request body and errors
